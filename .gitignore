@@ -19,6 +19,13 @@
 *.suo
 *.vcproj.*
 *.ncb
+*.ilk
+*.pdb
+*.idb
+*.obj
+*.dep
+*.manifest
+*/BuildLog.htm
 
 *.sublime-workspace
 
@@ -27,3 +34,7 @@ Makefile
 moc_*
 qrc_*
 ui_*
+
+debug/*
+Win32/*
+GeneratedFiles/*
