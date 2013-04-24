@@ -20,20 +20,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <stdio.h>
+#ifndef _NETWORKING_H
+#define _NETWORKING_H
 
-#include <QtCore/QCoreApplication>
+#include "portability.h"
 
-#include "version.h"
-#include "networking.h"
+#include <QtCore/QObject>
+#include <QtNetwork/QUdpSocket>
+
+#define LISTEN_PORT 3020
 
 
-int main(int argc, char** argv)
+class Networking : public QObject
 {
-    printf( "FireNode %d.%d.%d starting up...\n", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
-    QCoreApplication app(argc, argv);
+    Q_OBJECT
 
-    Networking net;
+public:
+    Networking();
+    ~Networking();
 
-    return app.exec();
-}
+    bool open(void);
+    bool close(void);
+
+    bool read_packet(uint16_t timeout);
+
+private slots:
+    void read_pending_packets();
+
+private:
+    QUdpSocket *_socket;
+};
+
+#endif

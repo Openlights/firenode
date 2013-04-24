@@ -20,20 +20,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <stdio.h>
-
-#include <QtCore/QCoreApplication>
-
-#include "version.h"
 #include "networking.h"
 
 
-int main(int argc, char** argv)
+Networking::Networking()
 {
-    printf( "FireNode %d.%d.%d starting up...\n", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
-    QCoreApplication app(argc, argv);
+    _socket = new QUdpSocket(this);
+    _socket->bind(QHostAddress::LocalHost, LISTEN_PORT);
 
-    Networking net;
+    connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
+}
 
-    return app.exec();
+
+Networking::~Networking()
+{
+}
+
+
+bool Networking::open(void)
+{
+    return true;    
+}
+
+
+bool Networking::close(void)
+{
+    return true;
+}
+
+
+bool Networking::read_packet(uint16_t timeout)
+{
+    return true;
+}
+
+
+void Networking::read_pending_packets(void)
+{
+
 }
