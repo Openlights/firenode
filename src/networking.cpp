@@ -49,13 +49,14 @@ bool Networking::close(void)
 }
 
 
-bool Networking::read_packet(uint16_t timeout)
+void Networking::read_pending_packets()
 {
-    return true;
-}
+    while (_socket->hasPendingDatagrams())
+    {
+        QByteArray dgram;
+        dgram.resize(_socket->pendingDatagramSize());
+        _socket->readDatagram(dgram.data(), dgram.size());
 
-
-void Networking::read_pending_packets(void)
-{
-
+        qDebug() << "Got packet: " << dgram.data();
+    }
 }

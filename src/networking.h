@@ -42,8 +42,6 @@ public:
     bool open(void);
     bool close(void);
 
-    bool read_packet(uint16_t timeout);
-
 private slots:
     void read_pending_packets();
 
