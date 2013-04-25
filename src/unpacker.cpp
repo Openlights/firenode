@@ -35,7 +35,16 @@ Unpacker::~Unpacker()
 
 void Unpacker::unpack_data(QByteArray *data)
 {
-    qDebug() << "Unpacking packet: " << data->size();
+    msgpack::unpacked msg;
+    msgpack::unpack(&msg, data->data(), data->size());
+
+    msgpack::object obj = msg.get();
+
+    unsigned char strand_id;
+
+    obj.convert(&strand_id);
+
+    qDebug() << "Message for strand " << strand_id;
 
     emit data_ready(data);
 }
