@@ -20,29 +20,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <stdio.h>
-
-#include <QtCore/QCoreApplication>
-#include <QtCore/QObject>
-
-#include "version.h"
-#include "networking.h"
-#include "unpacker.h"
 #include "serial.h"
 
 
-int main(int argc, char** argv)
+Serial::Serial()
 {
-    printf( "FireNode %d.%d.%d starting up...\n", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
-    QCoreApplication app(argc, argv);
+    QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
+    _port.setPort(info[0]);
 
-    Networking net;
-    Unpacker up;
-    Serial ser;
+    _port.setBaudRate(2000000);
 
-    QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
+    _port.setDataBits(QSerialPort::Data8);
+    _port.setParity(QSerialPort::NoParity);
+    _port.setStopBits(QSerialPort::OneStop);
+    _port.setFlowControl(QSerialPort::NoFlowControl);
+}
 
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &ser, SLOT(write_data(QByteArray*)));
 
-    return app.exec();
+Serial::~Serial()
+{
+    _port.close();
+}
+
+
+void Serial::write_data(QByteArray *data)
+{
+    _port.write(*data);
 }

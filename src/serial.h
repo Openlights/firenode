@@ -20,29 +20,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <stdio.h>
+#ifndef _SERIAL_H
+#define _SERIAL_H
 
-#include <QtCore/QCoreApplication>
+#include "portability.h"
+
 #include <QtCore/QObject>
-
-#include "version.h"
-#include "networking.h"
-#include "unpacker.h"
-#include "serial.h"
+#include <QtCore/QDebug>
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
 
 
-int main(int argc, char** argv)
+//! Writes data to strand controller connected to a virtual serial port.
+class Serial : public QObject
 {
-    printf( "FireNode %d.%d.%d starting up...\n", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
-    QCoreApplication app(argc, argv);
+    Q_OBJECT
 
-    Networking net;
-    Unpacker up;
-    Serial ser;
+public:
+    Serial();
+    ~Serial();
 
-    QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
+public slots:
+    void write_data(QByteArray *data);
 
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &ser, SLOT(write_data(QByteArray*)));
+signals:
+    void data_written(); 
 
-    return app.exec();
-}
+private:
+    QSerialPort _port;
+};
+
+#endif

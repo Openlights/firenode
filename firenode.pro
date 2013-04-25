@@ -1,6 +1,6 @@
 TEMPLATE = app
+CONFIG += qt debug console serial
 TARGET = firenode
-CONFIG += qt debug console
 QT += core network
 DEFINES += QT_LARGEFILE_SUPPORT QT_DLL QT_NETWORK_LIB
 

@@ -40,21 +40,21 @@ Unpacker::~Unpacker()
 
 void Unpacker::unpack_data(QByteArray *data)
 {
-    uint8_t cmd = 0;
-    uint16_t datalen = 0;
-    uint8_t strand_id = 0;
+    //uint8_t cmd = 0;
+    //uint16_t datalen = 0;
+    //uint8_t strand_id = 0;
 
-    QByteArray dbgarr = data->toHex();
+    //QByteArray dbgarr = data->toHex();
 
-    cmd = data->at(0);
-    datalen = (data->at(1) << 8) + data->at(2);
+    //cmd = data->at(0);
+    //datalen = (data->at(1) << 8) + data->at(2);
 
-    data->remove(0, 3);
-    strand_id = data->at(0);
+    //data->remove(0, 3);
+    //strand_id = data->at(0);
 
-    qDebug() << "Command" << cmd << " Length" << datalen;
+    //qDebug() << "Command" << cmd << " Length" << datalen;
 
-    qDebug() << "Strand ID:" << strand_id;
+    //qDebug() << "Strand ID:" << strand_id;
 
     emit data_ready(data);
 }
