@@ -20,43 +20,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "networking.h"
+#include "unpacker.h"
 
-
-Networking::Networking()
-{
-    _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, LISTEN_PORT);
-
-    connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
-}
-
-
-Networking::~Networking()
-{
-}
-
-
-bool Networking::open(void)
-{
-    return true;    
-}
-
-
-bool Networking::close(void)
-{
-    return true;
-}
-
-
-void Networking::read_pending_packets()
-{
-    while (_socket->hasPendingDatagrams())
-    {
-        QByteArray dgram;
-        dgram.resize(_socket->pendingDatagramSize());
-        _socket->readDatagram(dgram.data(), dgram.size());
-
-        qDebug() << "Got packet: " << dgram.size();
-    }
-}

@@ -23,9 +23,11 @@
 #include <stdio.h>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QObject>
 
 #include "version.h"
 #include "networking.h"
+#include "unpacker.h"
 
 
 int main(int argc, char** argv)
@@ -34,6 +36,9 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
 
     Networking net;
+    Unpacker up;
+
+    QObject::connect(&net, SIGNAL(data_ready(QByteArray)), &up, SLOT(unpack_data(QByteArray))
 
     return app.exec();
 }

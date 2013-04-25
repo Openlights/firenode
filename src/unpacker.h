@@ -20,43 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "networking.h"
+#ifndef _UNPACKER_H
+#define _UNPACKER_H
+
+#include "portability.h"
+
+#include <QtCore/QObject>
+#include "msgpack.hpp"
 
 
-Networking::Networking()
+class Unpacker : public QObject
 {
-    _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, LISTEN_PORT);
+    Q_OBJECT
 
-    connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
-}
+public:
+    Unpacker();
+    ~Unpacker();
 
+    bool get_data(QByteArray *data);
 
-Networking::~Networking()
-{
-}
+public slots:
+    void unpack_data(QByteArray *data);
 
-
-bool Networking::open(void)
-{
-    return true;    
-}
+signals:
+    void data_ready(QByteArray *data); 
 
 
-bool Networking::close(void)
-{
-    return true;
-}
+};
 
-
-void Networking::read_pending_packets()
-{
-    while (_socket->hasPendingDatagrams())
-    {
-        QByteArray dgram;
-        dgram.resize(_socket->pendingDatagramSize());
-        _socket->readDatagram(dgram.data(), dgram.size());
-
-        qDebug() << "Got packet: " << dgram.size();
-    }
-}
+#endif

@@ -43,7 +43,10 @@ public:
     bool close(void);
 
 private slots:
-    void read_pending_packets();
+    void read_pending_packets(void);
+
+signals:
+    void data_ready(QByteArray *data);
 
 private:
     QUdpSocket *_socket;
