@@ -26,6 +26,7 @@
 #include "portability.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QDebug>
 #include <QtNetwork/QUdpSocket>
 
 #define LISTEN_PORT 3020

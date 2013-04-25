@@ -22,3 +22,20 @@
 
 #include "unpacker.h"
 
+
+Unpacker::Unpacker()
+{
+}
+
+
+Unpacker::~Unpacker()
+{
+}
+
+
+void Unpacker::unpack_data(QByteArray *data)
+{
+    qDebug() << "Unpacking packet: " << data->size();
+
+    emit data_ready(data);
+}

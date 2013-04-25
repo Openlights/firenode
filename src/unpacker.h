@@ -26,9 +26,11 @@
 #include "portability.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QDebug>
 #include "msgpack.hpp"
 
 
+//! Unpacks data received over the network using msgpack
 class Unpacker : public QObject
 {
     Q_OBJECT
@@ -36,8 +38,6 @@ class Unpacker : public QObject
 public:
     Unpacker();
     ~Unpacker();
-
-    bool get_data(QByteArray *data);
 
 public slots:
     void unpack_data(QByteArray *data);

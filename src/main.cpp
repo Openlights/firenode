@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     Networking net;
     Unpacker up;
 
-    QObject::connect(&net, SIGNAL(data_ready(QByteArray)), &up, SLOT(unpack_data(QByteArray))
+    QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
 
     return app.exec();
 }

@@ -57,6 +57,6 @@ void Networking::read_pending_packets()
         dgram.resize(_socket->pendingDatagramSize());
         _socket->readDatagram(dgram.data(), dgram.size());
 
-        qDebug() << "Got packet: " << dgram.size();
+        emit data_ready(&dgram);
     }
 }
