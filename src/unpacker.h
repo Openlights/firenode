@@ -27,7 +27,6 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
-#include "msgpack.hpp"
 
 
 //! Unpacks data received over the network using msgpack

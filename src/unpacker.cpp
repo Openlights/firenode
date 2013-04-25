@@ -33,18 +33,28 @@ Unpacker::~Unpacker()
 }
 
 
+/// Unpacks data from the wire.
+/// 
+/// Input data format is [CMD, LEN, DATA] where CMD is a one-byte identifier,
+/// LEN is a 2-byte (MSB first) length, and DATA is an array of LEN bytes.
+
 void Unpacker::unpack_data(QByteArray *data)
 {
-    msgpack::unpacked msg;
-    msgpack::unpack(&msg, data->data(), data->size());
+    uint8_t cmd = 0;
+    uint16_t datalen = 0;
+    uint8_t strand_id = 0;
 
-    msgpack::object obj = msg.get();
+    QByteArray dbgarr = data->toHex();
 
-    unsigned char strand_id;
+    cmd = data->at(0);
+    datalen = (data->at(1) << 8) + data->at(2);
 
-    obj.convert(&strand_id);
+    data->remove(0, 3);
+    strand_id = data->at(0);
 
-    qDebug() << "Message for strand " << strand_id;
+    qDebug() << "Command" << cmd << " Length" << datalen;
+
+    qDebug() << "Strand ID:" << strand_id;
 
     emit data_ready(data);
 }
