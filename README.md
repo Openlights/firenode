@@ -1,21 +1,22 @@
 FireNode
 ========
 
-Firelight UDP->USB bridge
+Firelight UDP->USB bridge.  Connects to strand controllers via VCP (or libusb in the future).
+Listens on UDP 3020 for broadcasts from [FireMix](https://github.com/craftyjon/firemix)
 
 
 Dependencies
 ------------
 
-Qt4
-QtSerialPort (http://qt-project.org/wiki/QtSerialPort)
+* Qt4
+* QtSerialPort (http://qt-project.org/wiki/QtSerialPort)
 
 
 Building on Linux
 -----------------
 
-qmake
-make
+    qmake
+    make
 
 
 Building on Windows
