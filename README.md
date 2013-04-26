@@ -24,3 +24,11 @@ Building on Windows
 
 I have tested using VS2008 and the Qt4 VS plugin.  With this setup, you can just open the vcproj file and build.
 Other configurations are usable at your own risk.
+
+
+Usage
+-----
+
+    firenode --udp=<UDP_PORT> --serial=<SERIAL_PORT>
+
+`UDP_PORT` is typically `3020`, and `SERIAL_PORT` is something like `COM1` on Windows and `/dev/ttyUSB0` on Linux.
