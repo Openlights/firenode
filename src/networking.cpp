@@ -23,10 +23,12 @@
 #include "networking.h"
 
 
-Networking::Networking()
+Networking::Networking(uint16_t port_num)
 {
     _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, LISTEN_PORT);
+    _socket->bind(QHostAddress::LocalHost, port_num);
+
+    _port_num = port_num;
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
 }

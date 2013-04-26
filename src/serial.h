@@ -37,7 +37,7 @@ class Serial : public QObject
     Q_OBJECT
 
 public:
-    Serial();
+    Serial(const QString name);
     ~Serial();
 
 public slots:

@@ -37,7 +37,7 @@ class Networking : public QObject
     Q_OBJECT
 
 public:
-    Networking();
+    Networking(uint16_t port_num);
     ~Networking();
 
     bool open(void);
@@ -51,6 +51,7 @@ signals:
 
 private:
     QUdpSocket *_socket;
+    uint16_t _port_num;
 };
 
 #endif

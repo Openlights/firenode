@@ -23,10 +23,10 @@
 #include "serial.h"
 
 
-Serial::Serial()
+Serial::Serial(const QString name)
 {
-    QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
-    _port.setPort(info[0]);
+    QSerialPortInfo info = QSerialPortInfo(name);
+    _port.setPort(info);
 
     _port.setBaudRate(2000000);
 
@@ -34,6 +34,8 @@ Serial::Serial()
     _port.setParity(QSerialPort::NoParity);
     _port.setStopBits(QSerialPort::OneStop);
     _port.setFlowControl(QSerialPort::NoFlowControl);
+
+    _port.open(QIODevice::ReadWrite);
 }
 
 
