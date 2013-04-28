@@ -26,7 +26,7 @@
 Networking::Networking(uint16_t port_num)
 {
     _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, port_num);
+    _socket->bind(QHostAddress::LocalHost, port_num, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
 
     _port_num = port_num;
 

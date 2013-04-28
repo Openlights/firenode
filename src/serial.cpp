@@ -25,17 +25,29 @@
 
 Serial::Serial(const QString name)
 {
-    QSerialPortInfo info = QSerialPortInfo(name);
-    _port.setPort(info);
+    //QSerialPortInfo info = QSerialPortInfo(name);
+    _port.close();
+    _port.setPortName(name);
 
-    _port.setBaudRate(2000000);
+    if (!_port.open(QIODevice::ReadWrite)) {
+        qDebug() << "Could not open port, code" << _port.error();
+    }
 
-    _port.setDataBits(QSerialPort::Data8);
+    //if (!_port.setBaudRate(2000000)) {
+    if (!_port.setBaudRate(2000000)) {
+        qDebug() << "Error setting baud rate, code" << _port.error();
+        qDebug() << "Current rate is" << _port.baudRate();
+    }
+
+    if (!_port.setDataBits(QSerialPort::Data8)) {
+        qDebug() << "Error setting up port databits, code" << _port.error();
+    }
+
     _port.setParity(QSerialPort::NoParity);
     _port.setStopBits(QSerialPort::OneStop);
     _port.setFlowControl(QSerialPort::NoFlowControl);
 
-    _port.open(QIODevice::ReadWrite);
+    
 }
 
 
@@ -47,5 +59,15 @@ Serial::~Serial()
 
 void Serial::write_data(QByteArray *data)
 {
-    _port.write(*data);
+    _port.clear();
+
+    if (!_port.write(*data)) {
+        qDebug() << "Write error";
+    }
+
+    if (!_port.waitForBytesWritten(30)) {
+        qDebug() << "Timeout!";
+    }
+
+    _port.flush();
 }

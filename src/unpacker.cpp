@@ -55,6 +55,25 @@ void Unpacker::unpack_data(QByteArray *data)
     //qDebug() << "Command" << cmd << " Length" << datalen;
 
     //qDebug() << "Strand ID:" << strand_id;
+    //qDebug() << "Data length:" << data->length() << ", length bytes = " << data->toHex().at(2) << data->toHex().at(3);
+
+    //qDebug() << data->toHex().left(16);
+
+
+    unsigned char checksum = 0;
+    for (int i = 4; i < data->length(); i++) {
+        checksum ^= data->at(i);
+    }
+
+    //qDebug() << "Checksum:" << checksum;
+
+    data->prepend(0x99);
+    (*data)[1] = (*data)[1] +  1;
+    data->append(0xFF & checksum);
+
+    //qDebug("Total length %d", data->length());
+
+    //qDebug() << data->toHex();
 
     emit data_ready(data);
 }
