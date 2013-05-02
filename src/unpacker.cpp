@@ -59,21 +59,31 @@ void Unpacker::unpack_data(QByteArray *data)
 
     //qDebug() << data->toHex().left(16);
 
+    // Fix byte order
+    QByteArray new_data;
+    new_data += data->left(4);
+    for (int j = 4; j < data->length(); j += 3) {
+        new_data += data->at(j+2);
+        new_data += data->at(j+1);
+        new_data += data->at(j);
+    }
+
+    //qDebug() << new_data.left(16).toHex();
 
     unsigned char checksum = 0;
-    for (int i = 4; i < data->length(); i++) {
-        checksum ^= data->at(i);
+    for (int i = 4; i < new_data.length(); i++) {
+        checksum ^= new_data.at(i);
     }
 
     //qDebug() << "Checksum:" << checksum;
 
-    data->prepend(0x99);
-    (*data)[1] = (*data)[1] +  1;
-    data->append(0xFF & checksum);
+    new_data.prepend(0x99);
+    new_data[1] = new_data[1] +  1;
+    new_data.append(0xFF & checksum);
 
     //qDebug("Total length %d", data->length());
 
     //qDebug() << data->toHex();
 
-    emit data_ready(data);
+    emit data_ready(&new_data);
 }

@@ -74,9 +74,22 @@ int main(int argc, char** argv)
     Unpacker up;
     Serial ser(com_port);
 
-    QByteArray init_strands = QByteArray("\x99\x00\x15\x02\x00\xA0\x00\xA0");
+    // 0x99, 0x00, 0x15, 0x02, 0x00, 0xA0, 0x00, 0xA0
 
-    ser.write_data(&init_strands);
+    QByteArray *init_strands = new QByteArray();
+
+    init_strands->append((char)0x99);
+    init_strands->append((char)0x00);
+    init_strands->append((char)0x15);
+    init_strands->append((char)0x02);
+    init_strands->append((char)0x00);
+    init_strands->append((char)0xA0);
+    init_strands->append((char)0x00);
+    init_strands->append((char)0xA0);
+
+    ser.write_data(init_strands);
+
+    delete init_strands;
 
     QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
     QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &ser, SLOT(write_data(QByteArray*)));
