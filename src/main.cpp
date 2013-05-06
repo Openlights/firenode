@@ -32,6 +32,7 @@
 #include "networking.h"
 #include "unpacker.h"
 #include "serial.h"
+#include "usb.h"
 
 
 int main(int argc, char** argv)
@@ -41,30 +42,25 @@ int main(int argc, char** argv)
 
     QStringList args = app.arguments();
 
-    QString com_port;
     uint16_t udp_port = 65535;
 
-    if (args.size() < 3) {
+    if (args.size() < 2) {
         qDebug() << "Too few arguments.";
-        qDebug() << "Usage: firenode --serial=<COM_PORT> --udp=<UDP_PORT>";
+        qDebug() << "Usage: firenode --udp=<UDP_PORT>";
         return 1;
     }
 
-    QRegExp rx_arg_com_port("--serial=([0-9a-zA-Z/]+)");
     QRegExp rx_arg_udp_port("--udp=([0-9]+)");
 
     for (int i = 1; i < args.size(); i++) {
-        if (rx_arg_com_port.indexIn(args.at(i)) != -1) {
-            com_port = rx_arg_com_port.cap(1);
-        }
         if (rx_arg_udp_port.indexIn(args.at(i)) != -1) {
             udp_port = rx_arg_udp_port.cap(1).toInt();
         }
     }
 
-    if (com_port == "" || udp_port == 65535) {
+    if (udp_port == 65535) {
         qDebug() << "Invalid arguments.";
-        qDebug() << "Usage: firenode --serial=<COM_PORT> --udp=<UDP_PORT>";
+        qDebug() << "Usage: firenode --udp=<UDP_PORT>";
         return 1;
     }
 
@@ -72,7 +68,9 @@ int main(int argc, char** argv)
 
     Networking net(udp_port);
     Unpacker up;
-    Serial ser(com_port);
+    USBStrandController sc;
+
+    sc.connect();
 
     // 0x99, 0x00, 0x15, 0x02, 0x00, 0xA0, 0x00, 0xA0
 
@@ -87,14 +85,14 @@ int main(int argc, char** argv)
     init_strands->append((char)0x00);
     init_strands->append((char)0xA0);
 
-    ser.write_data(init_strands);
+    sc.write_data(init_strands);
 
     delete init_strands;
 
     QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &ser, SLOT(write_data(QByteArray*)));
+    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &sc, SLOT(write_data(QByteArray*)));
 
-    qDebug() << "Listening on UDP" << udp_port << "and transmitting on serial port" << com_port;
+    qDebug() << "Listening on UDP" << udp_port;
 
     return app.exec();
 }
