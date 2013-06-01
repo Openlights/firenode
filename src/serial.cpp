@@ -26,6 +26,7 @@
 Serial::Serial(const QString name)
 {
     //QSerialPortInfo info = QSerialPortInfo(name);
+    _packets = 0;
     _port.close();
     _port.setPortName(name);
 
@@ -47,13 +48,58 @@ Serial::Serial(const QString name)
     _port.setStopBits(QSerialPort::OneStop);
     _port.setFlowControl(QSerialPort::NoFlowControl);
 
-    
+    _exit = false;
+    _packet_in_process = false;
 }
 
 
 Serial::~Serial()
 {
     _port.close();
+    if (_timer) delete _timer;
+}
+
+
+void Serial::run()
+{
+    start_timer();
+    exec();
+}
+
+
+void Serial::packet_start()
+{
+    _packet_in_process = true;
+}
+
+
+void Serial::packet_done()
+{
+    _packet_in_process = false;
+}
+
+
+void Serial::shutdown()
+{
+    _exit = true;
+}
+
+
+void Serial::start_timer()
+{
+    _timer = new QTimer();
+     connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
+     _timer->start();
+}
+
+
+void Serial::process_loop()
+{
+    if (!_q.isEmpty() && !_packet_in_process)
+    {
+        QByteArray d = _q.dequeue();
+        write_data(&d);
+    }
 }
 
 
@@ -69,5 +115,31 @@ void Serial::write_data(QByteArray *data)
         qDebug() << "Timeout!";
     }
 
+    _packets++;
+    _last_packet = *data;
+
     _port.flush();
+}
+
+
+void Serial::enqueue_data(QByteArray *data)
+{
+    _q.enqueue(*data);
+}
+
+
+unsigned long long Serial::get_pps_and_reset()
+{
+    unsigned long long p = _packets;
+    _packets = 0;
+    return p;
+}
+
+
+void Serial::print_stats()
+{
+    unsigned long long packets = get_pps_and_reset();
+    qDebug("%0.2f packets/sec, _last_packet.size = %d", (double)packets / STATS_TIME, _last_packet.size());
+    qDebug() << _last_packet.left(26).toHex();
+
 }

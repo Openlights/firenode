@@ -36,8 +36,12 @@ bool USBStrandController::connect()
     }
 
     if (libusb_kernel_driver_active(_handle, 0)) {
-        qDebug() << "Warn: Kernel driver is active";
-        return false;
+        qDebug() << "Warn: Kernel driver is active.  Will attempt to detach...";
+
+        if (libusb_detach_kernel_driver(_handle, 0) != 0) {
+            qDebug() << "Could not detach driver.";
+            return false;
+        }
     }
 
     libusb_reset_device(_handle);

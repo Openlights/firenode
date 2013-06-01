@@ -26,13 +26,19 @@
 #include "portability.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QThread>
 #include <QtCore/QDebug>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
+#include <QtCore/QQueue>
+#include <QtCore/QTimer>
+
+
+#define STATS_TIME 1.0
 
 
 //! Writes data to strand controller connected to a virtual serial port.
-class Serial : public QObject
+class Serial : public QThread
 {
     Q_OBJECT
 
@@ -40,14 +46,31 @@ public:
     Serial(const QString name);
     ~Serial();
 
+    unsigned long long get_pps_and_reset(void);
+    void run(void);
+
 public slots:
-    void write_data(QByteArray *data);
+	void write_data(QByteArray *data);
+    void enqueue_data(QByteArray *data);
+    void print_stats(void);
+    void process_loop(void);
+    void start_timer(void);
+    void shutdown(void);
+    void packet_start(void);
+    void packet_done(void);
 
 signals:
     void data_written(); 
 
 private:
     QSerialPort _port;
+    QTimer *_timer;
+    bool _packet_in_process;
+
+    unsigned long long _packets;
+    bool _exit;
+    QQueue<QByteArray> _q;
+    QByteArray _last_packet;
 };
 
 #endif

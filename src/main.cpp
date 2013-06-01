@@ -26,6 +26,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QRegExp>
 #include <QtCore/QStringList>
+#include <QtCore/QTimer>
+#include <QtCore/QThread>
 
 #include "portability.h"
 #include "version.h"
@@ -43,18 +45,24 @@ int main(int argc, char** argv)
     QStringList args = app.arguments();
 
     uint16_t udp_port = 65535;
+    QString serial_port;
 
-    if (args.size() < 2) {
+    if (args.size() < 3) {
         qDebug() << "Too few arguments.";
-        qDebug() << "Usage: firenode --udp=<UDP_PORT>";
+        qDebug() << "Usage: firenode --udp=<UDP_PORT> --serial=<SERIAL_DEVICE>";
         return 1;
     }
 
     QRegExp rx_arg_udp_port("--udp=([0-9]+)");
+    QRegExp rx_arg_serial_port("--serial=([0-9a-zA-Z/]+)");
 
     for (int i = 1; i < args.size(); i++) {
         if (rx_arg_udp_port.indexIn(args.at(i)) != -1) {
             udp_port = rx_arg_udp_port.cap(1).toInt();
+        }
+
+        if (rx_arg_serial_port.indexIn(args.at(i)) != -1) {
+            serial_port = rx_arg_serial_port.cap(1);
         }
     }
 
@@ -68,9 +76,10 @@ int main(int argc, char** argv)
 
     Networking net(udp_port);
     Unpacker up;
-    USBStrandController sc;
+    //USBStrandController sc;
+    Serial *ser = new Serial(serial_port);
 
-    sc.connect();
+    //sc.connect();
 
     // 0x99, 0x00, 0x15, 0x02, 0x00, 0xA0, 0x00, 0xA0
 
@@ -85,14 +94,29 @@ int main(int argc, char** argv)
     init_strands->append((char)0x00);
     init_strands->append((char)0xA0);
 
-    sc.write_data(init_strands);
+    ser->write_data(init_strands);
 
     delete init_strands;
 
+    //QObject::connect(serial, SIGNAL(started()), ser, SLOT(start_timer()));
+    QObject::connect(&app, SIGNAL(aboutToQuit()), ser, SLOT(quit()));
+
+    ser->start();
+
+    QTimer stats_timer;
+    stats_timer.start((unsigned int)(1000.0 * STATS_TIME));
+
     QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &sc, SLOT(write_data(QByteArray*)));
+    //QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &sc, SLOT(write_data(QByteArray*)));
+    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), ser, SLOT(enqueue_data(QByteArray*)));
+    QObject::connect(&up, SIGNAL(packet_start()), ser, SLOT(packet_start()));
+    QObject::connect(&up, SIGNAL(packet_done()), ser, SLOT(packet_done()));
+
+    QObject::connect(&stats_timer, SIGNAL(timeout()), ser, SLOT(print_stats()));
 
     qDebug() << "Listening on UDP" << udp_port;
+
+
 
     return app.exec();
 }
