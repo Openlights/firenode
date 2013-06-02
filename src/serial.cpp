@@ -50,6 +50,26 @@ Serial::Serial(const QString name)
 
     _exit = false;
     _packet_in_process = false;
+
+    _packet_start_frame = QByteArray();
+    _packet_end_frame = QByteArray();
+
+    _packet_start_frame.append((char)0x99);
+    _packet_start_frame.append((char)0x00);
+    _packet_start_frame.append((char)0x00);
+    _packet_start_frame.append((char)0x30);
+    _packet_start_frame.append((char)0x01);
+    _packet_start_frame.append((char)0x00);
+    _packet_start_frame.append((char)0x00);
+
+    _packet_end_frame.append((char)0x99);
+    _packet_end_frame.append((char)0x00);
+    _packet_end_frame.append((char)0x00);
+    _packet_end_frame.append((char)0x31);
+    _packet_end_frame.append((char)0x01);
+    _packet_end_frame.append((char)0x00);
+    _packet_end_frame.append((char)0x00);
+
 }
 
 
@@ -70,11 +90,13 @@ void Serial::run()
 void Serial::packet_start()
 {
     _packet_in_process = true;
+    send_sof();
 }
 
 
 void Serial::packet_done()
 {
+    send_eof();
     _packet_in_process = false;
 }
 
@@ -119,6 +141,18 @@ void Serial::write_data(QByteArray *data)
     _last_packet = *data;
 
     _port.flush();
+}
+
+
+void Serial::send_sof()
+{
+    write_data(&_packet_start_frame);
+}
+
+
+void Serial::send_eof()
+{
+    write_data(&_packet_end_frame);
 }
 
 

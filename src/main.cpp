@@ -87,12 +87,13 @@ int main(int argc, char** argv)
 
     init_strands->append((char)0x99);
     init_strands->append((char)0x00);
+    init_strands->append((char)0x00);
     init_strands->append((char)0x15);
     init_strands->append((char)0x02);
     init_strands->append((char)0x00);
     init_strands->append((char)0xA0);
     init_strands->append((char)0x00);
-    init_strands->append((char)0xA0);
+    //init_strands->append((char)0xA0);
 
     ser->write_data(init_strands);
 

@@ -58,6 +58,8 @@ public slots:
     void shutdown(void);
     void packet_start(void);
     void packet_done(void);
+    void send_sof(void);
+    void send_eof(void);
 
 signals:
     void data_written(); 
@@ -71,6 +73,9 @@ private:
     bool _exit;
     QQueue<QByteArray> _q;
     QByteArray _last_packet;
+
+    QByteArray _packet_start_frame, _packet_end_frame;
+
 };
 
 #endif

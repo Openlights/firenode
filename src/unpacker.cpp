@@ -90,11 +90,21 @@ void Unpacker::unpack_data(QByteArray *data)
             }
         }
 
-        //new_data.prepend(0x99);
+        // Escape sequence
+        for (int j = 0; j < new_data.size(); j++) {
+            if (new_data.at(j) == 0x99) {
+                new_data.insert(j + 1, 0x01);
+                qDebug() << "ESCAPE" << new_data.toHex();
+            }
+        }
+
+        // Start of frame sequence
+        new_data.prepend((char)0x00);
+        new_data.prepend((char)0x99);    
 
         //qDebug() << new_data.left(16).toHex();
         // Fixup strand numbering
-        new_data[1] = new_data[1] +  1;
+        new_data[2] = new_data.at(2) +  1;
 
         /*unsigned char checksum = 0;
         for (int i = 0; i < new_data.size(); i++) {
@@ -111,7 +121,7 @@ void Unpacker::unpack_data(QByteArray *data)
         //qDebug("Total length %d", data->length());
 
         //qDebug() << data->toHex();
-        if ((unsigned char)new_data.at(1) == 1)
+        //if ((unsigned char)new_data.at(0) < 2)
         {
             emit data_ready(&new_data);
         }
