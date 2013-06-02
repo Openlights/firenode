@@ -61,7 +61,7 @@ void Unpacker::unpack_data(QByteArray *data)
 
     // Fix byte order
     QByteArray new_data;
-    unsigned short data_len;
+    unsigned short data_len = 0, escapes = 0, packet_size = 0;
     //qDebug() << "Sending packets";
     emit packet_start();
 
@@ -91,20 +91,32 @@ void Unpacker::unpack_data(QByteArray *data)
         }
 
         // Escape sequence
-        for (int j = 0; j < new_data.size(); j++) {
-            if (new_data.at(j) == 0x99) {
-                new_data.insert(j + 1, 0x01);
-                qDebug() << "ESCAPE" << new_data.toHex();
+        escapes = 0;
+        packet_size = new_data.size();
+        for (int j = 2; j < packet_size; j++) {
+            if (new_data.at(j) == (char)0x99) {
+                new_data.insert(j + 1, (char)0x55);
+                escapes++;
+                packet_size++;
+                //qDebug("ESCAPE %x %x", new_data.at(j), new_data.at(j+1));
+                j++;
             }
         }
+
+        // Fixup strand numbering
+        new_data[0] = new_data.at(0) +  1;
+
+        // Correct data length in case we added escape sequences
+        new_data[2] = ((data_len + escapes) & 0xFF);
+        new_data[3] = ((data_len + escapes) & 0xFF00) >> 8;
+
 
         // Start of frame sequence
         new_data.prepend((char)0x00);
         new_data.prepend((char)0x99);    
 
         //qDebug() << new_data.left(16).toHex();
-        // Fixup strand numbering
-        new_data[2] = new_data.at(2) +  1;
+        
 
         /*unsigned char checksum = 0;
         for (int i = 0; i < new_data.size(); i++) {
@@ -121,7 +133,7 @@ void Unpacker::unpack_data(QByteArray *data)
         //qDebug("Total length %d", data->length());
 
         //qDebug() << data->toHex();
-        //if ((unsigned char)new_data.at(0) < 2)
+        //if ((unsigned char)new_data.at(2) < 2)
         {
             emit data_ready(&new_data);
         }
