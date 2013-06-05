@@ -21,6 +21,7 @@
 // THE SOFTWARE.
 
 #include "unpacker.h"
+#include "colorsys.h"
 
 
 Unpacker::Unpacker()
@@ -87,6 +88,30 @@ void Unpacker::unpack_data(QByteArray *data)
                 new_data += data->at(j);
                 new_data += data->at(j+1);
                 new_data += data->at(j+2);
+            }
+        } else if ((unsigned char)new_data.at(1) == 0x30) {
+            // Unpack HLS to RGB
+            uint8_t r, g, b;
+            new_data[1] = 0x10;
+
+            hls_float_to_rgb_u8(, &r, &g, &b);
+
+            for (int j = 4; j < (4 + data_len); j += 3) {
+                new_data += r;
+                new_data += g;
+                new_data += b;
+            }
+        } else if ((unsigned char)new_data.at(1) == 0x31) {
+            // Unpack HLS to BGR
+            uint8_t r, g, b;
+            new_data[1] = 0x10;
+            
+            hls_float_to_rgb_u8(, &r, &g, &b);
+            
+            for (int j = 4; j < (4 + data_len); j += 3) {
+                new_data += b;
+                new_data += g;
+                new_data += r;
             }
         }
 
