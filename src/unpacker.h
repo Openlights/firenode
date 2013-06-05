@@ -43,6 +43,8 @@ public slots:
 
 signals:
     void data_ready(QByteArray *data); 
+    void packet_start(void);
+    void packet_done(void);
 
 
 };
