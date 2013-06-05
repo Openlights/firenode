@@ -94,6 +94,7 @@ void Unpacker::unpack_data(QByteArray *data)
             uint8_t r, g, b;
             new_data[1] = 0x10;
 
+            // FIXME: hls_float_to_rgb_u8 should sanitize the HLS values first
             hls_float_to_rgb_u8(, &r, &g, &b);
 
             for (int j = 4; j < (4 + data_len); j += 3) {

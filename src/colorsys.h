@@ -38,6 +38,9 @@
  */
 inline void hls_float_to_rgb_u8(float h, float l, float s, uint8_t *r, uint8_t *g, uint8_t *b)
 {
+    // FIXME: hls_float_to_rgb_u8 should sanitize the HLS values first
+    // 0.0 <= L, S <= 1.0
+    // hue = fmod(hue, 1.0)
     if (s == 0.0) {
         *r = (uint8_t)(255.0 * l);
         *g = (uint8_t)(255.0 * l);
