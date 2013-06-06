@@ -40,38 +40,14 @@ Unpacker::~Unpacker()
 
 void Unpacker::unpack_data(QByteArray *data)
 {
-    //uint8_t cmd = 0;
-    //uint16_t datalen = 0;
-    //uint8_t strand_id = 0;
-
-    //QByteArray dbgarr = data->toHex();
-
-    //cmd = data->at(0);
-    //datalen = (data->at(1) << 8) + data->at(2);
-
-    //data->remove(0, 3);
-    //strand_id = data->at(0);
-
-    //qDebug() << "Command" << cmd << " Length" << datalen;
-
-    //qDebug() << "Strand ID:" << strand_id;
-    //qDebug() << "Data length:" << data->length() << ", length bytes = " << data->toHex().at(2) << data->toHex().at(3);
-
-    //qDebug() << data->toHex().left(16);
-
-    // Fix byte order
     QByteArray new_data;
     unsigned short data_len = 0, escapes = 0, packet_size = 0;
-    //qDebug() << "Sending packets";
+    
     emit packet_start();
 
     do {
-        //qDebug() << "Data" << data->left(16).toHex();
         new_data = data->left(4);
         data_len =  ((0x00FF & new_data.at(3)) << 8) + (0xFF & new_data.at(2));
-
-
-        //qDebug("packet length %d (%x, %x)", data_len, new_data.at(2), new_data.at(3));
 
         if ((unsigned char)new_data.at(1) == 0x10) {
             // Write BGR
@@ -98,7 +74,6 @@ void Unpacker::unpack_data(QByteArray *data)
                 new_data.insert(j + 1, (char)0x55);
                 escapes++;
                 packet_size++;
-                //qDebug("ESCAPE %x %x", new_data.at(j), new_data.at(j+1));
                 j++;
             }
         }
@@ -110,36 +85,12 @@ void Unpacker::unpack_data(QByteArray *data)
         new_data[2] = ((data_len + escapes) & 0xFF);
         new_data[3] = ((data_len + escapes) & 0xFF00) >> 8;
 
-
         // Start of frame sequence
         new_data.prepend((char)0x00);
         new_data.prepend((char)0x99);    
 
-        //qDebug() << new_data.left(16).toHex();
+        emit data_ready(&new_data);
         
-
-        /*unsigned char checksum = 0;
-        for (int i = 0; i < new_data.size(); i++) {
-            //qDebug() << new_data.toHex().at(i);
-            checksum ^= (unsigned char)new_data.at(i);
-        }
-
-        //qDebug() << "Checksum:" << checksum;
-        
-        
-
-        new_data.append(checksum);*/
-
-        //qDebug("Total length %d", data->length());
-
-        //qDebug() << data->toHex();
-        //if ((unsigned char)new_data.at(2) < 2)
-        {
-            emit data_ready(&new_data);
-        }
-
-        //qDebug("new_data %d, data %d", new_data.length(), data->length());
-
         data->remove(0, data_len + 4);
 
     } while (data->length() > 0);
