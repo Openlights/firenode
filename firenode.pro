@@ -12,3 +12,6 @@ LIBS += -lusb-1.0
 
 INCLUDEPATH += /usr/include/libusb-1.0/
 DEPENDPATH += /usr/local/lib/
+
+QMAKE_CXXFLAGS_DEBUG += -pg
+QMAKE_LFLAGS_DEBUG += -pg

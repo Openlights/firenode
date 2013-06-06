@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <stdio.h>
+#include <cstdio>
+#include <iostream>
+#include <csignal>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QObject>
@@ -37,10 +39,22 @@
 #include "usb.h"
 
 
+QCoreApplication *pApp;
+
+
+void sig_handler(int sig)
+{
+    if (sig == SIGINT || sig == SIGTERM)
+    {
+        pApp->quit();
+    }
+}
+
+
 int main(int argc, char** argv)
 {
-    
     QCoreApplication app(argc, argv);
+    pApp = &app;
 
     QStringList args = app.arguments();
 
@@ -71,6 +85,9 @@ int main(int argc, char** argv)
         qDebug() << "Usage: firenode --udp=<UDP_PORT>";
         return 1;
     }
+
+    signal(SIGINT, sig_handler);
+    signal(SIGTERM, sig_handler);
 
     qDebug("FireNode %d.%d.%d starting up...", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
 
@@ -119,5 +136,9 @@ int main(int argc, char** argv)
 
 
 
-    return app.exec();
+    app.exec();
+
+    std::cout << "Bye" << std::endl;
+
+    return 0;
 }

@@ -175,5 +175,6 @@ void Serial::print_stats()
     unsigned long long packets = get_pps_and_reset();
     qDebug("%0.2f packets/sec, _last_packet.size = %d", (double)packets / STATS_TIME, _last_packet.size());
     qDebug() << _last_packet.left(26).toHex();
+    qDebug() << _last_packet.right(26).toHex();
 
 }
