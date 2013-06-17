@@ -21,6 +21,7 @@
 // THE SOFTWARE.
 
 #include "unpacker.h"
+#include "color_correct.h"
 
 
 Unpacker::Unpacker()
@@ -43,6 +44,7 @@ void Unpacker::unpack_data(QByteArray *data)
     QByteArray new_data;
     unsigned short data_len = 0, escapes = 0, packet_size = 0;
     
+    //qDebug() << "Start packet";
     emit packet_start();
 
     do {
@@ -52,17 +54,17 @@ void Unpacker::unpack_data(QByteArray *data)
         if ((unsigned char)new_data.at(1) == 0x10) {
             // Write BGR
             for (int j = 4; j < (4 + data_len); j += 3) {
-                new_data += data->at(j+2);
-                new_data += data->at(j+1);
-                new_data += data->at(j);
+                new_data += color_correct((*data)[j+2]);
+                new_data += color_correct((*data)[j+1]);
+                new_data += color_correct((*data)[j]);
             }
         } else if ((unsigned char)new_data.at(1) == 0x20) {
             // Write RGB
             new_data[1] = 0x10;
             for (int j = 4; j < (4 + data_len); j += 3) {
-                new_data += data->at(j);
-                new_data += data->at(j+1);
-                new_data += data->at(j+2);
+                new_data += color_correct(data->at(j));
+                new_data += color_correct(data->at(j+1));
+                new_data += color_correct(data->at(j+2));
             }
         }
 
@@ -79,7 +81,9 @@ void Unpacker::unpack_data(QByteArray *data)
         }
 
         // Fixup strand numbering
-        new_data[0] = new_data.at(0) +  1;
+        new_data[0] = new_data[0] +  1;
+
+        //qDebug("data_len %d escapes %d", data_len, escapes);
 
         // Correct data length in case we added escape sequences
         new_data[2] = ((data_len + escapes) & 0xFF);
@@ -87,13 +91,17 @@ void Unpacker::unpack_data(QByteArray *data)
 
         // Start of frame sequence
         new_data.prepend((char)0x00);
-        new_data.prepend((char)0x99);    
+        new_data.prepend((char)0x99);
+
+        //qDebug() << "Strand data sending"; 
 
         emit data_ready(&new_data);
         
         data->remove(0, data_len + 4);
 
     } while (data->length() > 0);
+
+    //qDebug() << "Done with packet";
 
     emit packet_done();
 }

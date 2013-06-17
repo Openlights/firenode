@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     QObject::connect(&up, SIGNAL(packet_start()), ser, SLOT(packet_start()));
     QObject::connect(&up, SIGNAL(packet_done()), ser, SLOT(packet_done()));
 
-    QObject::connect(&stats_timer, SIGNAL(timeout()), ser, SLOT(print_stats()));
+    //QObject::connect(&stats_timer, SIGNAL(timeout()), ser, SLOT(print_stats()));
 
     qDebug() << "Listening on UDP" << udp_port;
 

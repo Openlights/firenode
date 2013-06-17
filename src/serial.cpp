@@ -110,8 +110,9 @@ void Serial::shutdown()
 void Serial::start_timer()
 {
     _timer = new QTimer();
-     connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
-     _timer->start();
+    _timer->setInterval(3);
+    connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
+    _timer->start();
 }
 
 
@@ -137,6 +138,8 @@ void Serial::write_data(QByteArray *data)
         qDebug() << "Timeout!";
     }
 
+    //qDebug() << data->toHex();
+
     _packets++;
     _last_packet = *data;
 
@@ -146,13 +149,13 @@ void Serial::write_data(QByteArray *data)
 
 void Serial::send_sof()
 {
-    write_data(&_packet_start_frame);
+    enqueue_data(&_packet_start_frame);
 }
 
 
 void Serial::send_eof()
 {
-    write_data(&_packet_end_frame);
+    enqueue_data(&_packet_end_frame);
 }
 
 
@@ -174,7 +177,6 @@ void Serial::print_stats()
 {
     unsigned long long packets = get_pps_and_reset();
     qDebug("%0.2f packets/sec, _last_packet.size = %d", (double)packets / STATS_TIME, _last_packet.size());
-    qDebug() << _last_packet.left(26).toHex();
-    qDebug() << _last_packet.right(26).toHex();
+    qDebug() << _last_packet.toHex();
 
 }
