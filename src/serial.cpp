@@ -113,7 +113,7 @@ void Serial::shutdown()
 void Serial::start_timer()
 {
     _timer = new QTimer();
-    _timer->setInterval(4);
+    _timer->setInterval(3);
     connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
     _timer->start();
 }
