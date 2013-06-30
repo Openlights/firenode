@@ -50,6 +50,7 @@ Serial::Serial(const QString name)
 
     _exit = false;
     _packet_in_process = false;
+    _pending_write = false;
 
     _packet_start_frame = QByteArray();
     _packet_end_frame = QByteArray();
@@ -90,6 +91,7 @@ void Serial::run()
 void Serial::packet_start()
 {
     _packet_in_process = true;
+    _q.clear();
     send_sof();
 }
 
@@ -98,6 +100,7 @@ void Serial::packet_done()
 {
     send_eof();
     _packet_in_process = false;
+    _pending_write = true;
 }
 
 
@@ -110,7 +113,7 @@ void Serial::shutdown()
 void Serial::start_timer()
 {
     _timer = new QTimer();
-    _timer->setInterval(3);
+    _timer->setInterval(4);
     connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
     _timer->start();
 }
@@ -122,6 +125,7 @@ void Serial::process_loop()
     {
         QByteArray d = _q.dequeue();
         write_data(&d);
+        _pending_write = false;
     }
 }
 
@@ -149,19 +153,21 @@ void Serial::write_data(QByteArray *data)
 
 void Serial::send_sof()
 {
-    enqueue_data(&_packet_start_frame);
+    enqueue_data(&_packet_start_frame, true);
 }
 
 
 void Serial::send_eof()
 {
-    enqueue_data(&_packet_end_frame);
+    enqueue_data(&_packet_end_frame, true);
 }
 
 
-void Serial::enqueue_data(QByteArray *data)
+void Serial::enqueue_data(QByteArray *data, bool force)
 {
-    _q.enqueue(*data);
+    // Hack.
+    if (force || !_pending_write)
+        _q.enqueue(*data);
 }
 
 

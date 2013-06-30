@@ -51,7 +51,7 @@ public:
 
 public slots:
 	void write_data(QByteArray *data);
-    void enqueue_data(QByteArray *data);
+    void enqueue_data(QByteArray *data, bool force=false);
     void print_stats(void);
     void process_loop(void);
     void start_timer(void);
@@ -68,6 +68,7 @@ private:
     QSerialPort _port;
     QTimer *_timer;
     bool _packet_in_process;
+    bool _pending_write;
 
     unsigned long long _packets;
     bool _exit;

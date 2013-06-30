@@ -121,8 +121,8 @@ int main(int argc, char** argv)
 
     ser->start();
 
-    QTimer stats_timer;
-    stats_timer.start((unsigned int)(1000.0 * STATS_TIME));
+    //QTimer stats_timer;
+    //stats_timer.start((unsigned int)(1000.0 * STATS_TIME));
 
     QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
     //QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &sc, SLOT(write_data(QByteArray*)));
