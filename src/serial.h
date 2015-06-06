@@ -38,28 +38,25 @@
 
 
 //! Writes data to strand controller connected to a virtual serial port.
-class Serial : public QThread
+class Serial : public QObject
 {
     Q_OBJECT
 
 public:
     Serial(const QString name);
     ~Serial();
-
-    unsigned long long get_pps_and_reset(void);
+    //unsigned long long get_pps_and_reset(void);
     void run(void);
 
 public slots:
 	void write_data(QByteArray *data);
-    void enqueue_data(QByteArray *data, bool force=false);
-    void print_stats(void);
-    void process_loop(void);
-    void start_timer(void);
+    //void enqueue_data(QByteArray *data, bool force=false);
+    //void print_stats(void);
+    //void process_loop(void);
+    //void start_timer(void);
     void shutdown(void);
     void packet_start(void);
     void packet_done(void);
-    void send_sof(void);
-    void send_eof(void);
 
 signals:
     void data_written(); 

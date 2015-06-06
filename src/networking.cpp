@@ -21,44 +21,52 @@
 // THE SOFTWARE.
 
 #include "networking.h"
+#include "zmq.h"
 
-
-Networking::Networking(uint16_t port_num)
+Networking::Networking(int port)
 {
-    _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, port_num, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+    Q_UNUSED(port);
+    running = false;
 
-    _port_num = port_num;
+    context = zmq_ctx_new();
+    subscriber = zmq_socket(context, ZMQ_SUB);
+    int rc = zmq_connect(subscriber, "tcp://localhost:3020");
+    Q_ASSERT(rc == 0);
 
-    connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
+    rc = zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "", 0);
+    Q_ASSERT(rc == 0);
 }
 
+void Networking::start()
+{
+    running = true;
+    emit run();
+}
+
+void Networking::run()
+{
+    char buffer [MAX_PACKET_SIZE + 1];
+
+    while (running)
+    {
+        int size = zmq_recv(subscriber, buffer, MAX_PACKET_SIZE, 0);
+        if (size == -1) {
+            continue;
+        }
+
+        if (size > MAX_PACKET_SIZE) {
+            size = MAX_PACKET_SIZE;
+        }
+
+        buffer[size] = 0;
+
+        QByteArray ba(buffer, size);
+        emit data_ready(&ba);
+    }
+}
 
 Networking::~Networking()
 {
-}
-
-
-bool Networking::open(void)
-{
-    return true;    
-}
-
-
-bool Networking::close(void)
-{
-    return true;
-}
-
-
-void Networking::read_pending_packets()
-{
-    while (_socket->hasPendingDatagrams())
-    {
-        QByteArray dgram;
-        dgram.resize(_socket->pendingDatagramSize());
-        _socket->readDatagram(dgram.data(), dgram.size());
-
-        emit data_ready(&dgram);
-    }
+    zmq_close(subscriber);
+    zmq_ctx_destroy(context);
 }

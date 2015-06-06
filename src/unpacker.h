@@ -28,24 +28,31 @@
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
 
+#define MAX_STRANDS 16
 
-//! Unpacks data received over the network using msgpack
+
+//! Unpacks data received over the network
 class Unpacker : public QObject
 {
     Q_OBJECT
 
 public:
-    Unpacker();
+    Unpacker(int first, int last);
     ~Unpacker();
 
 public slots:
     void unpack_data(QByteArray *data);
+    void assemble_data(void);
 
 signals:
     void data_ready(QByteArray *data); 
-    void packet_start(void);
-    void packet_done(void);
+    void frame_begin(void);
+    void frame_end(void);
 
+private:
+    QByteArray strand_data[MAX_STRANDS];
+    int first_strand;
+    int last_strand;
 
 };
 

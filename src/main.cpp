@@ -36,7 +36,6 @@
 #include "networking.h"
 #include "unpacker.h"
 #include "serial.h"
-#include "usb.h"
 
 
 QCoreApplication *pApp;
@@ -57,32 +56,39 @@ int main(int argc, char** argv)
     pApp = &app;
 
     QStringList args = app.arguments();
-
-    uint16_t udp_port = 65535;
     QString serial_port;
+    int first_strand = -1, last_strand = -1;
 
-    if (args.size() < 3) {
+    if (args.size() < 4) {
         qDebug() << "Too few arguments.";
-        qDebug() << "Usage: firenode --udp=<UDP_PORT> --serial=<SERIAL_DEVICE>";
+        qDebug() << "Usage: firenode --serial=<SERIAL_DEVICE> --first-strand=N --last-strand=M";
         return 1;
     }
 
-    QRegExp rx_arg_udp_port("--udp=([0-9]+)");
+    QRegExp rx_arg_first_strand("--first-strand=([0-9]+)");
+    QRegExp rx_arg_last_strand("--last-strand=([0-9]+)");
     QRegExp rx_arg_serial_port("--serial=([0-9a-zA-Z/]+)");
 
     for (int i = 1; i < args.size(); i++) {
-        if (rx_arg_udp_port.indexIn(args.at(i)) != -1) {
-            udp_port = rx_arg_udp_port.cap(1).toInt();
-        }
-
         if (rx_arg_serial_port.indexIn(args.at(i)) != -1) {
             serial_port = rx_arg_serial_port.cap(1);
         }
+
+        if (rx_arg_first_strand.indexIn(args.at(i)) != -1) {
+            first_strand = rx_arg_first_strand.cap(1).toInt();
+        }
+
+        if (rx_arg_last_strand.indexIn(args.at(i)) != -1) {
+            last_strand = rx_arg_last_strand.cap(1).toInt();
+        }
     }
 
-    if (udp_port == 65535) {
-        qDebug() << "Invalid arguments.";
-        qDebug() << "Usage: firenode --udp=<UDP_PORT>";
+    if ((first_strand < 0) ||
+        (last_strand < 0) ||
+        (first_strand > last_strand) ||
+        ((last_strand - first_strand) > 8)) {
+        qDebug("Invalid strand spec: %d to %d.", first_strand, last_strand);
+        qDebug() << "Usage: firenode --serial=<SERIAL_DEVICE> --first-strand=N --last-strand=M";
         return 1;
     }
 
@@ -91,50 +97,29 @@ int main(int argc, char** argv)
 
     qDebug("FireNode %d.%d.%d starting up...", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
 
-    Networking net(udp_port);
-    Unpacker up;
-    //USBStrandController sc;
+    Networking net(3020);
+    Unpacker up(first_strand, last_strand);
     Serial *ser = new Serial(serial_port);
 
-    //sc.connect();
-
-    // 0x99, 0x00, 0x15, 0x02, 0x00, 0xA0, 0x00, 0xA0
-
-    QByteArray *init_strands = new QByteArray();
-
-    init_strands->append((char)0x99);
-    init_strands->append((char)0x00);
-    init_strands->append((char)0x00);
-    init_strands->append((char)0x15);
-    init_strands->append((char)0x02);
-    init_strands->append((char)0x00);
-    init_strands->append((char)0xA0);
-    init_strands->append((char)0x00);
-    //init_strands->append((char)0xA0);
-
-    ser->write_data(init_strands);
-
-    delete init_strands;
-
     //QObject::connect(serial, SIGNAL(started()), ser, SLOT(start_timer()));
-    QObject::connect(&app, SIGNAL(aboutToQuit()), ser, SLOT(quit()));
 
-    ser->start();
+
 
     //QTimer stats_timer;
     //stats_timer.start((unsigned int)(1000.0 * STATS_TIME));
 
     QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
-    //QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), &sc, SLOT(write_data(QByteArray*)));
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), ser, SLOT(enqueue_data(QByteArray*)));
-    QObject::connect(&up, SIGNAL(packet_start()), ser, SLOT(packet_start()));
-    QObject::connect(&up, SIGNAL(packet_done()), ser, SLOT(packet_done()));
+    QObject::connect(&up, SIGNAL(frame_end()), &up, SLOT(assemble_data()));
+    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), ser, SLOT(write_data(QByteArray*)));
+
+    QThread netThread;
+    QObject::connect(&app, SIGNAL(aboutToQuit()), &netThread, SLOT(quit()));
+
+    netThread.start();
+    net.moveToThread(&netThread);
+    net.start();
 
     //QObject::connect(&stats_timer, SIGNAL(timeout()), ser, SLOT(print_stats()));
-
-    qDebug() << "Listening on UDP" << udp_port;
-
-
 
     app.exec();
 
