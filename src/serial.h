@@ -62,7 +62,11 @@ signals:
     void data_written(); 
 
 private:
+    bool open_port(void);
+
+    QString _port_name;
     QSerialPort _port;
+    bool _open;
     QTimer *_timer;
     bool _packet_in_process;
     bool _pending_write;

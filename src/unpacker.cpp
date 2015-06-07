@@ -102,11 +102,20 @@ void Unpacker::unpack_data(QByteArray *data)
 
         strand_data[strand] = data->right(len);
 
-        // Swap color order
+        // Swap color order and do color correction
         for (int i = 0; i < len; i+=3) {
             char tmp = strand_data[strand][i];
             strand_data[strand][i] = strand_data[strand][i + 1];
             strand_data[strand][i + 1] = tmp;
+
+            // hacky color correction
+            float x = (float)strand_data[strand][i] / 255.0;
+            float y = (float)strand_data[strand][i + 1] / 255.0;
+            float z = (float)strand_data[strand][i + 2] / 255.0;
+
+            strand_data[strand][i] = color_correct(strand_data[strand][i]);
+            strand_data[strand][i + 1] = color_correct(strand_data[strand][i + 1]);
+            strand_data[strand][i + 2] = color_correct(strand_data[strand][i + 2]);
         }
 
     }

@@ -27,26 +27,9 @@ Serial::Serial(const QString name)
 {
     //QSerialPortInfo info = QSerialPortInfo(name);
     _packets = 0;
-    _port.close();
-    _port.setPortName(name);
+    _port_name = name;
 
-    if (!_port.open(QIODevice::ReadWrite)) {
-        qDebug() << "Could not open port, code" << _port.error();
-    }
-
-    //if (!_port.setBaudRate(2000000)) {
-    if (!_port.setBaudRate(2000000)) {
-        qDebug() << "Error setting baud rate, code" << _port.error();
-        qDebug() << "Current rate is" << _port.baudRate();
-    }
-
-    if (!_port.setDataBits(QSerialPort::Data8)) {
-        qDebug() << "Error setting up port databits, code" << _port.error();
-    }
-
-    _port.setParity(QSerialPort::NoParity);
-    _port.setStopBits(QSerialPort::OneStop);
-    _port.setFlowControl(QSerialPort::NoFlowControl);
+    open_port();
 
     _exit = false;
     _packet_in_process = false;
@@ -58,6 +41,41 @@ Serial::~Serial()
 {
     _port.close();
     if (_timer) delete _timer;
+}
+
+bool Serial::open_port()
+{
+    bool success = true;
+
+    _port.close();
+    _port.setPortName(_port_name);
+
+    if (!_port.open(QIODevice::ReadWrite)) {
+        qDebug() << "Could not open port, code" << _port.error();
+        success = false;
+    }
+
+    //if (!_port.setBaudRate(2000000)) {
+    if (!_port.setBaudRate(2000000)) {
+        qDebug() << "Error setting baud rate, code" << _port.error();
+        qDebug() << "Current rate is" << _port.baudRate();
+        success = false;
+    }
+
+    if (!_port.setDataBits(QSerialPort::Data8)) {
+        qDebug() << "Error setting up port databits, code" << _port.error();
+        success = false;
+    }
+
+    _port.setParity(QSerialPort::NoParity);
+    _port.setStopBits(QSerialPort::OneStop);
+    _port.setFlowControl(QSerialPort::NoFlowControl);
+
+    if (success) {
+        _open = true;
+    }
+
+    return success;
 }
 
 void Serial::packet_start()
@@ -102,17 +120,13 @@ void Serial::process_loop()
 
 void Serial::write_data(QByteArray *data)
 {
-    //qDebug() << "write_data";
-    //_port.clear();
     char reply[256];
 
-    /*QByteArray test;
-    test.append('*');
-    test.append('\0');
-    test.append('\0');
-    for (int i = 0; i < 240 * 3 * 8; i++) {
-        test.append('\x00');
-    }*/
+    if (!_open) {
+        if (!open_port()) {
+            return;
+        }
+    }
 
     int rc = _port.write(*data);
     if (rc < 0) {
@@ -126,6 +140,8 @@ void Serial::write_data(QByteArray *data)
 
     if (!_port.waitForBytesWritten(30)) {
         qDebug() << "Timeout!";
+        _open = false;
+        // Probably teensy power was pulled.  Let's try reopening the port.
     }
 #if 0
     if (_port.waitForReadyRead(1000)) {
