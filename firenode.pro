@@ -2,7 +2,7 @@ TEMPLATE = app
 CONFIG += qt debug console
 TARGET = firenode
 QT += core network serialport
-DEFINES += QT_LARGEFILE_SUPPORT QT_DLL QT_NETWORK_LIB
+DEFINES += QT_DLL QT_NETWORK_LIB
 
 SOURCES +=  src/networking.cpp \
             src/main.cpp \
@@ -20,3 +20,10 @@ win32 {
     LIBS += -L"../zeromq-4.1.0/bin" -lzmq
     INCLUDEPATH += "../zeromq-4.1.0/include"
 }
+
+unix {
+   # LIBS += -lzmq
+}
+
+DISTFILES += \
+    config.json

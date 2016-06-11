@@ -46,7 +46,7 @@ void Unpacker::assemble_data()
     int pixelptr = 0;
     for (int dataptr = 0; dataptr < data.length(); dataptr += 8) {
 
-        for (int i = first_strand; i < last_strand; i++) {
+        for (int i = first_strand; i <= last_strand; i++) {
 
             uint8_t strand_shift = (i - first_strand);
             uint8_t strand_pixel_data = strand_data[i][pixelptr];
@@ -66,23 +66,25 @@ void Unpacker::assemble_data()
     // Bytes 1 and 2 contained the length of the strand data.
     // Set them to zero because the Teensy interprets them as the delay time.
     // The rest of the data is interpreted as usual.
-    data.prepend('\0');
-    data.prepend('\0');
+    //data.prepend('\0');
+    //data.prepend('\0');
 
     // Start frame of video data
     data.prepend('*');
+
+    //qDebug() << "data_ready";
 
     emit data_ready(&data);
 }
 
 
-void Unpacker::unpack_data(QByteArray *data)
+void Unpacker::unpack_data(QByteArray data)
 {   
-    if (data->length() < 1) {
+    if (data.length() < 1) {
         return;
     }
 
-    char cmd = data->at(0);
+    char cmd = data.at(0);
 
     if (cmd == 'B') {
         emit frame_begin();
@@ -93,88 +95,28 @@ void Unpacker::unpack_data(QByteArray *data)
     } else if (cmd == 'S') {
 
         // Process strand data
-        Q_ASSERT(data->length() > 4);
+        //Q_ASSERT(data->length() > 4);
 
-        uint8_t strand = data->at(1);
-        uint16_t len = (data->at(2) & 0xFF) | ((data->at(3) << 8) & 0xFF00);
+        uint8_t strand = data.at(1);
+        uint8_t strand_idx = strand;
+        uint16_t len = (data.at(2) & 0xFF) | ((data.at(3) << 8) & 0xFF00);
 
         Q_ASSERT(strand < (MAX_STRANDS - 1));
 
-        strand_data[strand] = data->right(len);
+        if ((strand >= first_strand) && (strand <= last_strand)) {
+            strand_data[strand_idx] = data.right(len);
 
-        // Swap color order and do color correction
-        for (int i = 0; i < len; i+=3) {
-            char tmp = strand_data[strand][i];
-            strand_data[strand][i] = strand_data[strand][i + 1];
-            strand_data[strand][i + 1] = tmp;
+            // Swap color order and do color correction
+            for (int i = 0; i < len; i+=3) {
+                char tmp = strand_data[strand_idx][i];
+                strand_data[strand_idx][i] = strand_data[strand_idx][i + 1];
+                strand_data[strand_idx][i + 1] = tmp;
 
-            // hacky color correction
-            float x = (float)strand_data[strand][i] / 255.0;
-            float y = (float)strand_data[strand][i + 1] / 255.0;
-            float z = (float)strand_data[strand][i + 2] / 255.0;
-
-            strand_data[strand][i] = color_correct(strand_data[strand][i]);
-            strand_data[strand][i + 1] = color_correct(strand_data[strand][i + 1]);
-            strand_data[strand][i + 2] = color_correct(strand_data[strand][i + 2]);
+                // hacky color correction
+                //strand_data[strand_idx][i] = color_correct(strand_data[strand_idx][i]);
+                //strand_data[strand_idx][i + 1] = color_correct(strand_data[strand_idx][i + 1]);
+                //strand_data[strand_idx][i + 2] = color_correct(strand_data[strand_idx][i + 2]);
+            }
         }
-
     }
-
-#if 0
-
-    do {
-        new_data = data->left(4);
-        data_len =  ((0x00FF & new_data.at(3)) << 8) + (0xFF & new_data.at(2));
-
-        if ((unsigned char)new_data.at(1) == 0x10) {
-            // Write BGR
-            for (int j = 4; j < (4 + data_len); j += 3) {
-                new_data += color_correct((*data)[j+2]);
-                new_data += color_correct((*data)[j+1]);
-                new_data += color_correct((*data)[j]);
-            }
-        } else if ((unsigned char)new_data.at(1) == 0x20) {
-            // Write RGB
-            new_data[1] = 0x10;
-            for (int j = 4; j < (4 + data_len); j += 3) {
-                new_data += color_correct(data->at(j));
-                new_data += color_correct(data->at(j+1));
-                new_data += color_correct(data->at(j+2));
-            }
-        }
-
-        // Escape sequence
-        escapes = 0;
-        packet_size = new_data.size();
-        for (int j = 2; j < packet_size; j++) {
-            if (new_data.at(j) == (char)0x99) {
-                new_data.insert(j + 1, (char)0x55);
-                escapes++;
-                packet_size++;
-                j++;
-            }
-        }
-
-        // Fixup strand numbering
-        new_data[0] = new_data[0] +  1;
-
-        //qDebug("data_len %d escapes %d", data_len, escapes);
-
-        // Correct data length in case we added escape sequences
-        new_data[2] = ((data_len + escapes) & 0xFF);
-        new_data[3] = ((data_len + escapes) & 0xFF00) >> 8;
-
-        // Start of frame sequence
-        new_data.prepend((char)0x00);
-        new_data.prepend((char)0x99);
-
-        //qDebug() << "Strand data sending"; 
-
-        emit data_ready(&new_data);
-        
-        data->remove(0, data_len + 4);
-
-    } while (data->length() > 0);
-
-#endif
 }

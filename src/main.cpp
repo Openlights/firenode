@@ -30,6 +30,10 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QFile>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
 
 #include "portability.h"
 #include "version.h"
@@ -39,6 +43,8 @@
 
 
 QCoreApplication *pApp;
+
+#define MAX_OUTPUTS 256
 
 
 void sig_handler(int sig)
@@ -55,41 +61,50 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     pApp = &app;
 
-    QStringList args = app.arguments();
-    QString serial_port;
-    int first_strand = -1, last_strand = -1;
+    QFile config_file("config.json");
 
-    if (args.size() < 4) {
-        qDebug() << "Too few arguments.";
-        qDebug() << "Usage: firenode --serial=<SERIAL_DEVICE> --first-strand=N --last-strand=M";
+    if (!config_file.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open config.json, cannot continue");
         return 1;
     }
 
-    QRegExp rx_arg_first_strand("--first-strand=([0-9]+)");
-    QRegExp rx_arg_last_strand("--last-strand=([0-9]+)");
-    QRegExp rx_arg_serial_port("--serial=([0-9a-zA-Z/]+)");
+    QByteArray config_data = config_file.readAll();
+    QJsonDocument config_doc(QJsonDocument::fromJson(config_data));
 
-    for (int i = 1; i < args.size(); i++) {
-        if (rx_arg_serial_port.indexIn(args.at(i)) != -1) {
-            serial_port = rx_arg_serial_port.cap(1);
-        }
+    int udp_port = config_doc.object()["port"].toInt();
 
-        if (rx_arg_first_strand.indexIn(args.at(i)) != -1) {
-            first_strand = rx_arg_first_strand.cap(1).toInt();
-        }
+    QJsonArray outputs = config_doc.object()["outputs"].toArray();
 
-        if (rx_arg_last_strand.indexIn(args.at(i)) != -1) {
-            last_strand = rx_arg_last_strand.cap(1).toInt();
-        }
+    Serial* serials[MAX_OUTPUTS];
+    Unpacker* unpackers[MAX_OUTPUTS];
+
+    int num_serials = 0;
+
+    if (outputs.size() > MAX_OUTPUTS) {
+        qWarning("Cannot have more than %d output devices.", MAX_OUTPUTS);
+        return 2;
     }
 
-    if ((first_strand < 0) ||
-        (last_strand < 0) ||
-        (first_strand > last_strand) ||
-        ((last_strand - first_strand) > 8)) {
-        qDebug("Invalid strand spec: %d to %d.", first_strand, last_strand);
-        qDebug() << "Usage: firenode --serial=<SERIAL_DEVICE> --first-strand=N --last-strand=M";
-        return 1;
+    Networking net(udp_port);
+    QTimer *serial_timer = new QTimer(&app);
+    serial_timer->setInterval(1.0 / 25.0);
+
+    for (int output_index = 0; output_index < outputs.size(); output_index++) {
+        QJsonObject output_obj = outputs[output_index].toObject();
+        //qDebug() << output_index << output_obj;
+
+        QString serial_port = output_obj["port"].toString();
+        int first_strand = output_obj["first-strand"].toInt();
+        int last_strand = output_obj["last-strand"].toInt();
+
+        serials[output_index] = new Serial(serial_port);
+        unpackers[output_index] = new Unpacker(first_strand, last_strand);
+        num_serials++;
+
+        QObject::connect(&net, SIGNAL(data_ready(QByteArray)), unpackers[output_index], SLOT(unpack_data(QByteArray)));
+        QObject::connect(unpackers[output_index], SIGNAL(frame_end()), unpackers[output_index], SLOT(assemble_data()));
+        QObject::connect(unpackers[output_index], SIGNAL(data_ready(QByteArray*)), serials[output_index], SLOT(update_data(QByteArray*)));
+        QObject::connect(serial_timer, SIGNAL(timeout()), serials[output_index], SLOT(write_data()));
     }
 
     signal(SIGINT, sig_handler);
@@ -97,31 +112,39 @@ int main(int argc, char** argv)
 
     qDebug("FireNode %d.%d.%d starting up...", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD);
 
-    Networking net(3020);
-    Unpacker up(first_strand, last_strand);
-    Serial *ser = new Serial(serial_port);
-
-    //QObject::connect(serial, SIGNAL(started()), ser, SLOT(start_timer()));
-
-
-
     //QTimer stats_timer;
     //stats_timer.start((unsigned int)(1000.0 * STATS_TIME));
 
-    QObject::connect(&net, SIGNAL(data_ready(QByteArray*)), &up, SLOT(unpack_data(QByteArray*)));
-    QObject::connect(&up, SIGNAL(frame_end()), &up, SLOT(assemble_data()));
-    QObject::connect(&up, SIGNAL(data_ready(QByteArray*)), ser, SLOT(write_data(QByteArray*)));
-
     QThread netThread;
+    QObject::connect(&app, SIGNAL(aboutToQuit()), &net, SLOT(stop()));
     QObject::connect(&app, SIGNAL(aboutToQuit()), &netThread, SLOT(quit()));
 
     netThread.start();
     net.moveToThread(&netThread);
     net.start();
 
+    //QThread timer_thread;
+    //serial_timer->moveToThread(&timer_thread);
+    serial_timer->start();
+    //timer_thread.start();
+
+#ifdef USE_ZMQ
+    QTimer *net_timer = new QTimer(&app);
+    net_timer->setInterval(1.0);
+    QObject::connect(net_timer, SIGNAL(timeout()), &net, SLOT(get_data()));
+    net_timer->start();
+#endif
+
     //QObject::connect(&stats_timer, SIGNAL(timeout()), ser, SLOT(print_stats()));
 
     app.exec();
+
+    serial_timer->deleteLater();
+
+    for (int serial_index = 0; serial_index < num_serials; serial_index++) {
+        serials[serial_index]->deleteLater();
+        unpackers[serial_index]->deleteLater();
+    }
 
     std::cout << "Bye" << std::endl;
 

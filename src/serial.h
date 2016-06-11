@@ -49,11 +49,11 @@ public:
     void run(void);
 
 public slots:
-	void write_data(QByteArray *data);
+    void update_data(QByteArray *data);
+    void write_data(void);
     //void enqueue_data(QByteArray *data, bool force=false);
     //void print_stats(void);
     //void process_loop(void);
-    //void start_timer(void);
     void shutdown(void);
     void packet_start(void);
     void packet_done(void);
@@ -74,7 +74,8 @@ private:
     unsigned long long _packets;
     bool _exit;
     QQueue<QByteArray> _q;
-    QByteArray _last_packet;
+    QByteArray _frame;
+    QByteArray _next_frame;
 
     QByteArray _packet_start_frame, _packet_end_frame;
 

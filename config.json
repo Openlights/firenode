@@ -1,0 +1,15 @@
+{
+    "port": 3021,
+    "outputs": [
+        {
+            "port": "/dev/ttyACM0",
+            "first-strand": 0,
+            "last-strand": 7
+        },
+	{
+            "port": "/dev/ttyACM1",
+            "first-strand": 8,
+            "last-strand": 15
+        }
+    ]
+}

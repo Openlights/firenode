@@ -24,11 +24,14 @@
 #define _NETWORKING_H
 
 #include "zmq.h"
-
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
+#include <QtCore/QTimer>
+#include <QtNetwork/QUdpSocket>
 
-#define MAX_PACKET_SIZE 4096
+#define MAX_PACKET_SIZE 16384
+
+//#define USE_ZMQ
 
 class Networking : public QObject
 {
@@ -44,9 +47,14 @@ public:
 public slots:
     void start(void);
     void run(void);
+    void stop(void);
+    void get_data(void);
+
+private slots:
+    void read_pending_packets(void);
 
 signals:
-    void data_ready(QByteArray *data);
+    void data_ready(QByteArray data);
 
 private:
 
@@ -54,6 +62,9 @@ private:
     void *subscriber;
     int port;
     bool running;
+
+    QTimer *_timer;
+    QUdpSocket *_socket;
 };
 
 #endif

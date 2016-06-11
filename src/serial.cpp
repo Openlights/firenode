@@ -28,6 +28,7 @@ Serial::Serial(const QString name)
     //QSerialPortInfo info = QSerialPortInfo(name);
     _packets = 0;
     _port_name = name;
+    _timer = 0;
 
     open_port();
 
@@ -40,7 +41,7 @@ Serial::Serial(const QString name)
 Serial::~Serial()
 {
     _port.close();
-    if (_timer) delete _timer;
+    if (_timer) { _timer->deleteLater(); }
 }
 
 bool Serial::open_port()
@@ -56,7 +57,7 @@ bool Serial::open_port()
     }
 
     //if (!_port.setBaudRate(2000000)) {
-    if (!_port.setBaudRate(2000000)) {
+    if (!_port.setBaudRate(1000000)) {
         qDebug() << "Error setting baud rate, code" << _port.error();
         qDebug() << "Current rate is" << _port.baudRate();
         success = false;
@@ -95,32 +96,18 @@ void Serial::packet_done()
 void Serial::shutdown()
 {
     _exit = true;
+    _timer->stop();
+    _timer->deleteLater();
 }
 
-#if 0
-void Serial::start_timer()
+void Serial::update_data(QByteArray *data)
 {
-    _timer = new QTimer();
-    _timer->setInterval(3);
-    connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
-    _timer->start();
+    _next_frame = *data;
 }
 
-
-void Serial::process_loop()
+void Serial::write_data()
 {
-    if (!_q.isEmpty() && !_packet_in_process)
-    {
-        QByteArray d = _q.dequeue();
-        write_data(&d);
-        _pending_write = false;
-    }
-}
-#endif
-
-void Serial::write_data(QByteArray *data)
-{
-    char reply[256];
+    //char reply[256];
 
     if (!_open) {
         if (!open_port()) {
@@ -128,7 +115,15 @@ void Serial::write_data(QByteArray *data)
         }
     }
 
-    int rc = _port.write(*data);
+    //_frame = QByteArray::fromRawData(_next_frame.data(), _next_frame.length());
+    _frame = _next_frame;
+    //qDebug() << _frame.toHex().left(16);
+
+    if (_frame.length() == 0) {
+        return;
+    }
+
+    int rc = _port.write(_frame);
     if (rc < 0) {
         qDebug() << "Write error";
     }
@@ -138,7 +133,7 @@ void Serial::write_data(QByteArray *data)
     }
 #endif
 
-    if (!_port.waitForBytesWritten(30)) {
+    if (!_port.waitForBytesWritten(100)) {
         qDebug() << "Timeout!";
         _open = false;
         // Probably teensy power was pulled.  Let's try reopening the port.
@@ -150,7 +145,6 @@ void Serial::write_data(QByteArray *data)
     }
 #endif
     _packets++;
-    _last_packet = *data;
 
     //_port.flush();
 }

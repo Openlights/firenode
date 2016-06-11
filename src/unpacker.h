@@ -28,7 +28,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
 
-#define MAX_STRANDS 16
+#define MAX_STRANDS 128
 
 
 //! Unpacks data received over the network
@@ -41,7 +41,7 @@ public:
     ~Unpacker();
 
 public slots:
-    void unpack_data(QByteArray *data);
+    void unpack_data(QByteArray data);
     void assemble_data(void);
 
 signals:
