@@ -23,7 +23,6 @@
 #ifndef _NETWORKING_H
 #define _NETWORKING_H
 
-#include "zmq.h"
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
@@ -33,12 +32,16 @@
 
 //#define USE_ZMQ
 
+#ifdef USE_ZMQ
+#include "zmq.h"
+#endif
+
 class Networking : public QObject
 {
     Q_OBJECT
 
 public:
-    Networking(int port);
+    Networking(int port, bool listen_all);
     ~Networking();
 
     bool open(void);

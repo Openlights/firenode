@@ -72,6 +72,7 @@ int main(int argc, char** argv)
     QJsonDocument config_doc(QJsonDocument::fromJson(config_data));
 
     int udp_port = config_doc.object()["port"].toInt();
+    bool listen_all = config_doc.object()["listenAll"].toBool(false);
 
     QJsonArray outputs = config_doc.object()["outputs"].toArray();
 
@@ -85,7 +86,7 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    Networking net(udp_port);
+    Networking net(udp_port, listen_all);
     QTimer *serial_timer = new QTimer(&app);
     serial_timer->setInterval(1.0 / 25.0);
 
