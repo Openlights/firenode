@@ -1,13 +1,14 @@
 {
+    "listenAll": false,
     "port": 3021,
     "outputs": [
         {
-            "port": "/dev/ttyACM0",
+            "port": "",
             "first-strand": 0,
             "last-strand": 7
         },
 	{
-            "port": "/dev/ttyACM1",
+            "port": "",
             "first-strand": 8,
             "last-strand": 15
         }
