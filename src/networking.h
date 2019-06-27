@@ -23,35 +23,51 @@
 #ifndef _NETWORKING_H
 #define _NETWORKING_H
 
-#include "portability.h"
-
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
+#include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
-#define LISTEN_PORT 3020
+#define MAX_PACKET_SIZE 16384
 
+//#define USE_ZMQ
+
+#ifdef USE_ZMQ
+#include "zmq.h"
+#endif
 
 class Networking : public QObject
 {
     Q_OBJECT
 
 public:
-    Networking(uint16_t port_num);
+    Networking(int port, bool listen_all);
     ~Networking();
 
     bool open(void);
     bool close(void);
 
+public slots:
+    void start(void);
+    void run(void);
+    void stop(void);
+    void get_data(void);
+
 private slots:
     void read_pending_packets(void);
 
 signals:
-    void data_ready(QByteArray *data);
+    void data_ready(QByteArray data);
 
 private:
+
+    void *context;
+    void *subscriber;
+    int port;
+    bool running;
+
+    QTimer *_timer;
     QUdpSocket *_socket;
-    uint16_t _port_num;
 };
 
 #endif

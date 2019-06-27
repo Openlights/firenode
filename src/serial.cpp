@@ -27,78 +27,67 @@ Serial::Serial(const QString name)
 {
     //QSerialPortInfo info = QSerialPortInfo(name);
     _packets = 0;
-    _port.close();
-    _port.setPortName(name);
+    _port_name = name;
+    _timer = 0;
 
-    if (!_port.open(QIODevice::ReadWrite)) {
-        qDebug() << "Could not open port, code" << _port.error();
-    }
-
-    //if (!_port.setBaudRate(2000000)) {
-    if (!_port.setBaudRate(2000000)) {
-        qDebug() << "Error setting baud rate, code" << _port.error();
-        qDebug() << "Current rate is" << _port.baudRate();
-    }
-
-    if (!_port.setDataBits(QSerialPort::Data8)) {
-        qDebug() << "Error setting up port databits, code" << _port.error();
-    }
-
-    _port.setParity(QSerialPort::NoParity);
-    _port.setStopBits(QSerialPort::OneStop);
-    _port.setFlowControl(QSerialPort::NoFlowControl);
+    open_port();
 
     _exit = false;
     _packet_in_process = false;
     _pending_write = false;
-
-    _packet_start_frame = QByteArray();
-    _packet_end_frame = QByteArray();
-
-    _packet_start_frame.append((char)0x99);
-    _packet_start_frame.append((char)0x00);
-    _packet_start_frame.append((char)0x00);
-    _packet_start_frame.append((char)0x30);
-    _packet_start_frame.append((char)0x01);
-    _packet_start_frame.append((char)0x00);
-    _packet_start_frame.append((char)0x00);
-
-    _packet_end_frame.append((char)0x99);
-    _packet_end_frame.append((char)0x00);
-    _packet_end_frame.append((char)0x00);
-    _packet_end_frame.append((char)0x31);
-    _packet_end_frame.append((char)0x01);
-    _packet_end_frame.append((char)0x00);
-    _packet_end_frame.append((char)0x00);
-
 }
 
 
 Serial::~Serial()
 {
     _port.close();
-    if (_timer) delete _timer;
+    if (_timer) { _timer->deleteLater(); }
 }
 
-
-void Serial::run()
+bool Serial::open_port()
 {
-    start_timer();
-    exec();
-}
+    bool success = true;
 
+    _port.close();
+    _port.setPortName(_port_name);
+
+    if (!_port.open(QIODevice::ReadWrite)) {
+        qDebug() << "Could not open port, code" << _port.error();
+        success = false;
+    }
+
+    //if (!_port.setBaudRate(2000000)) {
+    if (!_port.setBaudRate(1000000)) {
+        qDebug() << "Error setting baud rate, code" << _port.error();
+        qDebug() << "Current rate is" << _port.baudRate();
+        success = false;
+    }
+
+    if (!_port.setDataBits(QSerialPort::Data8)) {
+        qDebug() << "Error setting up port databits, code" << _port.error();
+        success = false;
+    }
+
+    _port.setParity(QSerialPort::NoParity);
+    _port.setStopBits(QSerialPort::OneStop);
+    _port.setFlowControl(QSerialPort::NoFlowControl);
+
+    if (success) {
+        _open = true;
+    }
+
+    return success;
+}
 
 void Serial::packet_start()
 {
     _packet_in_process = true;
     _q.clear();
-    send_sof();
 }
 
 
 void Serial::packet_done()
 {
-    send_eof();
     _packet_in_process = false;
     _pending_write = true;
 }
@@ -107,62 +96,60 @@ void Serial::packet_done()
 void Serial::shutdown()
 {
     _exit = true;
+    _timer->stop();
+    _timer->deleteLater();
 }
 
-
-void Serial::start_timer()
+void Serial::update_data(QByteArray *data)
 {
-    _timer = new QTimer();
-    _timer->setInterval(3);
-    connect(_timer, SIGNAL(timeout()), this, SLOT(process_loop()));
-    _timer->start();
+    _next_frame = *data;
 }
 
-
-void Serial::process_loop()
+void Serial::write_data()
 {
-    if (!_q.isEmpty() && !_packet_in_process)
-    {
-        QByteArray d = _q.dequeue();
-        write_data(&d);
-        _pending_write = false;
+    //char reply[256];
+
+    if (!_open) {
+        if (!open_port()) {
+            return;
+        }
     }
-}
 
+    //_frame = QByteArray::fromRawData(_next_frame.data(), _next_frame.length());
+    _frame = _next_frame;
+    //qDebug() << _frame.toHex().left(16);
 
-void Serial::write_data(QByteArray *data)
-{
-    _port.clear();
+    if (_frame.length() == 0) {
+        return;
+    }
 
-    if (!_port.write(*data)) {
+    int rc = _port.write(_frame);
+    if (rc < 0) {
         qDebug() << "Write error";
     }
-
-    if (!_port.waitForBytesWritten(30)) {
-        qDebug() << "Timeout!";
+#if 0
+    else {
+        qDebug("wrote %d bytes", rc);
     }
+#endif
 
-    //qDebug() << data->toHex();
-
+    if (!_port.waitForBytesWritten(100)) {
+        qDebug() << "Timeout!";
+        _open = false;
+        // Probably teensy power was pulled.  Let's try reopening the port.
+    }
+#if 0
+    if (_port.waitForReadyRead(1000)) {
+        _port.read(reply, 256);
+        qDebug() << "Reply:" << reply;
+    }
+#endif
     _packets++;
-    _last_packet = *data;
 
-    _port.flush();
+    //_port.flush();
 }
 
-
-void Serial::send_sof()
-{
-    enqueue_data(&_packet_start_frame, true);
-}
-
-
-void Serial::send_eof()
-{
-    enqueue_data(&_packet_end_frame, true);
-}
-
-
+#if 0
 void Serial::enqueue_data(QByteArray *data, bool force)
 {
     // Hack.
@@ -186,3 +173,4 @@ void Serial::print_stats()
     qDebug() << _last_packet.toHex();
 
 }
+#endif

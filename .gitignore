@@ -38,3 +38,5 @@ ui_*
 debug/*
 Win32/*
 GeneratedFiles/*
+
+config.json

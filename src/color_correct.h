@@ -56,7 +56,7 @@ inline unsigned char color_correct(unsigned char in)
 	if (in == 0)
 		return 0;
 	else
-		return std::max((unsigned char)1, std::min((unsigned char)255, (unsigned char)( pow((float)in / 255.0, 4) * 255.0  )));
+        return std::max((unsigned char)1, std::min((unsigned char)255, (unsigned char)( pow((float)in / 255.0, 2) * 255.0  )));
 } 
 
 

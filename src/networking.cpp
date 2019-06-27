@@ -21,35 +21,48 @@
 // THE SOFTWARE.
 
 #include "networking.h"
+//#include "zmq.h"
 
-
-Networking::Networking(uint16_t port_num)
+Networking::Networking(int port, bool listen_all)
 {
-    _socket = new QUdpSocket(this);
-    _socket->bind(QHostAddress::LocalHost, port_num, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+#ifdef USE_ZMQ
+    Q_UNUSED(port);
+    running = false;
 
-    _port_num = port_num;
+    context = zmq_ctx_new();
+    subscriber = zmq_socket(context, ZMQ_SUB);
+    int rc = zmq_connect(subscriber, "tcp://localhost:3020");
+    Q_ASSERT(rc == 0);
+
+    rc = zmq_setsockopt(subscriber, ZMQ_SUBSCRIBE, "", 0);
+    Q_ASSERT(rc == 0);
+#else
+    _socket = new QUdpSocket(this);
+    _socket->bind(listen_all ? QHostAddress::Any : QHostAddress::LocalHost,
+                  port, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+
+    qDebug("Listening on port %d", port);
 
     connect(_socket, SIGNAL(readyRead()), this, SLOT(read_pending_packets()));
+#endif
 }
 
-
-Networking::~Networking()
+void Networking::start()
 {
+    running = true;
+    emit run();
 }
 
-
-bool Networking::open(void)
+void Networking::stop()
 {
-    return true;    
+    qDebug() << "quit!";
+    running = false;
 }
 
-
-bool Networking::close(void)
+void Networking::run()
 {
-    return true;
-}
 
+}
 
 void Networking::read_pending_packets()
 {
@@ -59,6 +72,47 @@ void Networking::read_pending_packets()
         dgram.resize(_socket->pendingDatagramSize());
         _socket->readDatagram(dgram.data(), dgram.size());
 
-        emit data_ready(&dgram);
+        emit data_ready(dgram);
     }
+}
+
+void Networking::get_data()
+{
+#if USE_ZMQ
+    char buffer [MAX_PACKET_SIZE + 1];
+
+    bool receivemore = true;
+    while (receivemore) {
+        int size = zmq_recv(subscriber, buffer, MAX_PACKET_SIZE, 0);
+
+        if (size == -1) {
+            return;
+        }
+
+        size_t sockoptlen = 0;
+        int sockopt = 0;
+        zmq_getsockopt(subscriber, ZMQ_RCVMORE, &sockopt, &sockoptlen);
+        receivemore = (sockopt == 1);
+
+        if (size > MAX_PACKET_SIZE) {
+            size = MAX_PACKET_SIZE;
+            qDebug() << "WARNING: had to truncate packet!";
+        }
+
+        buffer[size] = 0;
+
+        QByteArray ba(buffer, size);
+        emit data_ready(ba);
+    }
+#endif
+}
+
+Networking::~Networking()
+{
+#ifdef USE_ZMQ
+    zmq_close(subscriber);
+    zmq_ctx_destroy(context);
+#else
+    _socket->close();
+#endif
 }
